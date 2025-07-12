@@ -44,7 +44,7 @@ export class VibeCodingStack extends cdk.Stack {
     // AppSync API
     const api = new appsync.GraphqlApi(this, 'VibeCodingApi', {
       name: 'vibe-coding-api',
-      definition: appsync.Definition.fromFile('schema.graphql'),
+      schema: appsync.SchemaFile.fromAsset('schema.graphql'),
       authorizationConfig: {
         defaultAuthorization: {
           authorizationType: appsync.AuthorizationType.USER_POOL,
@@ -76,32 +76,14 @@ export class VibeCodingStack extends cdk.Stack {
     const lambdaDataSource = api.addLambdaDataSource('PostLambdaDataSource', postResolver);
 
     // Amplify App
-    const amplifyApp = new amplify.App(this, 'VibeCodingApp', {
-      sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
-        owner: 'your-github-username',
-        repository: 'vibe-coding-frontend',
-        oauthToken: cdk.SecretValue.secretsManager('github-token'),
-      }),
-      buildSpec: amplify.BuildSpec.fromObjectToYaml({
-        version: '1.0',
-        frontend: {
-          phases: {
-            preBuild: {
-              commands: ['npm ci'],
-            },
-            build: {
-              commands: ['npm run build'],
-            },
-          },
-          artifacts: {
-            baseDirectory: 'dist',
-            files: ['**/*'],
-          },
-        },
-      }),
+    const amplifyApp = new amplify.CfnApp(this, 'VibeCodingApp', {
+      name: 'vibe-coding-app',
     });
 
-    amplifyApp.addBranch('main');
+    const amplifyBranch = new amplify.CfnBranch(this, 'VibeCodingAppBranch', {
+      appId: amplifyApp.attrAppId,
+      branchName: 'main',
+    });
 
     // Outputs
     new cdk.CfnOutput(this, 'UserPoolId', {
